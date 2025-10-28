@@ -1,5 +1,5 @@
 // Configuration
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzrIaUM63EcamZKNaVPhyaz-Zm0HZhSWH2gXRhZqvcHMQBmvIFcTVezIuDCYCiMr72j/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz5mW6cWsLNbnvVSK83noGOugzAuHRZwjROcAgswSGj_8vmmb8lvDGLl3FCUJaaTQSI/exec';
 const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
 
 // State management
