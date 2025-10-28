@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apps Script Connection Diagnostics</title>
+    <title>Email Auto-Response Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -12,1037 +12,781 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #0f1419;
-            color: #e6edf3;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f8f9fa;
+            color: #2c3e50;
             line-height: 1.6;
-            padding: 20px;
         }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
+        /* Header */
         .header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 30px 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .header h1 {
-            font-size: 32px;
-            font-weight: 700;
-            color: white;
-            margin-bottom: 10px;
-        }
-
-        .header p {
-            color: rgba(255, 255, 255, 0.9);
-            font-size: 16px;
-        }
-
-        .deployment-info {
-            background: #1c2128;
-            border: 1px solid #373e47;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-
-        .deployment-info h3 {
-            font-size: 18px;
-            margin-bottom: 15px;
-            color: #58a6ff;
-        }
-
-        .url-display {
-            background: #0d1117;
-            padding: 12px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            word-break: break-all;
-            color: #7ee787;
-            border: 1px solid #30363d;
-        }
-
-        .action-bar {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-secondary {
-            background: #21262d;
-            color: #e6edf3;
-            border: 1px solid #373e47;
-        }
-
-        .btn-secondary:hover {
-            background: #30363d;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .test-section {
-            background: #1c2128;
-            border: 1px solid #373e47;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-
-        .test-header {
-            padding: 20px;
-            cursor: pointer;
+            background: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            user-select: none;
-            border-bottom: 1px solid #373e47;
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
 
-        .test-header:hover {
-            background: #21262d;
-        }
-
-        .test-title {
+        .header-left h1 {
+            font-size: 24px;
+            color: #2c3e50;
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 16px;
-            font-weight: 600;
+            gap: 10px;
         }
 
-        .test-status {
-            font-size: 24px;
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: #27ae60;
         }
 
-        .test-status.pending { color: #6e7681; }
-        .test-status.running { 
-            color: #f0883e;
-            animation: pulse 1s infinite;
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background: #27ae60;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
         }
-        .test-status.success { color: #3fb950; }
-        .test-status.error { color: #f85149; }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
 
-        .test-body {
-            padding: 20px;
-            display: none;
-            background: #0d1117;
-        }
-
-        .test-body.expanded {
-            display: block;
-        }
-
-        .test-info {
-            margin-bottom: 15px;
-        }
-
-        .info-label {
-            font-size: 12px;
-            color: #7d8590;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .info-value {
-            font-size: 14px;
-            color: #e6edf3;
-        }
-
-        .code-block {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            overflow-x: auto;
-            color: #c9d1d9;
-            margin: 10px 0;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .status-badge.success {
-            background: rgba(63, 185, 80, 0.15);
-            color: #3fb950;
-            border: 1px solid rgba(63, 185, 80, 0.3);
-        }
-
-        .status-badge.error {
-            background: rgba(248, 81, 73, 0.15);
-            color: #f85149;
-            border: 1px solid rgba(248, 81, 73, 0.3);
-        }
-
-        .status-badge.warning {
-            background: rgba(240, 136, 62, 0.15);
-            color: #f0883e;
-            border: 1px solid rgba(240, 136, 62, 0.3);
-        }
-
-        .suggestions-section {
-            background: #1c2128;
-            border: 1px solid #373e47;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 30px;
-        }
-
-        .suggestions-section h3 {
-            font-size: 18px;
-            margin-bottom: 15px;
-            color: #58a6ff;
-        }
-
-        .suggestion-item {
-            background: #0d1117;
-            border-left: 4px solid #58a6ff;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 6px;
-        }
-
-        .suggestion-item h4 {
-            font-size: 14px;
-            margin-bottom: 8px;
-            color: #f0883e;
-        }
-
-        .suggestion-item p {
-            font-size: 14px;
-            color: #c9d1d9;
-            line-height: 1.6;
-        }
-
-        .log-container {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 30px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .log-container h3 {
-            font-size: 18px;
-            margin-bottom: 15px;
-            color: #58a6ff;
-            position: sticky;
-            top: 0;
-            background: #0d1117;
-            padding-bottom: 10px;
-        }
-
-        .log-entry {
-            padding: 10px;
-            margin-bottom: 8px;
-            border-radius: 6px;
-            font-size: 13px;
-            border-left: 3px solid;
-        }
-
-        .log-entry.info {
-            background: rgba(88, 166, 255, 0.1);
-            border-color: #58a6ff;
-        }
-
-        .log-entry.success {
-            background: rgba(63, 185, 80, 0.1);
-            border-color: #3fb950;
-        }
-
-        .log-entry.error {
-            background: rgba(248, 81, 73, 0.1);
-            border-color: #f85149;
-        }
-
-        .log-entry.warning {
-            background: rgba(240, 136, 62, 0.1);
-            border-color: #f0883e;
-        }
-
-        .log-time {
-            color: #7d8590;
-            font-size: 11px;
-            margin-right: 10px;
-        }
-
-        .log-type {
-            font-weight: 600;
-            margin-right: 10px;
-        }
-
-        .log-message {
-            color: #e6edf3;
-        }
-
-        .log-data {
-            margin-top: 8px;
-            padding: 10px;
-            background: #161b22;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            overflow-x: auto;
-            color: #7ee787;
-        }
-
-        .summary-section {
-            background: #1c2128;
-            border: 1px solid #373e47;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 30px;
-            display: none;
-        }
-
-        .summary-section.visible {
-            display: block;
-        }
-
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-
-        .summary-card {
-            background: #0d1117;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #30363d;
-            text-align: center;
-        }
-
-        .summary-value {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-
-        .summary-label {
-            font-size: 13px;
-            color: #7d8590;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .progress-bar {
-            height: 4px;
-            background: #30363d;
-            border-radius: 2px;
-            margin-top: 30px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            width: 0;
-            transition: width 0.3s ease;
-        }
-
-        .alternative-links {
-            background: #1c2128;
-            border: 1px solid #373e47;
-            border-radius: 12px;
-            padding: 20px;
-            margin-top: 30px;
-        }
-
-        .alternative-links h3 {
-            font-size: 18px;
-            margin-bottom: 15px;
-            color: #58a6ff;
-        }
-
-        .link-item {
+        .header-right {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px;
-            background: #0d1117;
-            border: 1px solid #30363d;
+            gap: 15px;
+        }
+
+        .refresh-btn {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
             border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: #5568d3;
+        }
+
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .last-update {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        /* Banner for demo mode */
+        .demo-banner {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px 40px;
+            text-align: center;
+            border-bottom: 1px solid #ffeaa7;
+            display: none;
+        }
+
+        .demo-banner.show {
+            display: block;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 30px;
+        }
+
+        /* Stats Panel */
+        .stats-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .stats-panel h2 {
+            font-size: 18px;
+            margin-bottom: 25px;
+            color: #2c3e50;
+        }
+
+        .stat-item {
+            margin-bottom: 25px;
+        }
+
+        .stat-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        /* Email Feed */
+        .email-feed {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .feed-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .feed-header h2 {
+            font-size: 20px;
+            color: #2c3e50;
+        }
+
+        .email-count {
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+
+        /* Email Cards */
+        .email-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .email-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-left: 4px solid #95a5a6;
+        }
+
+        .email-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .email-card.support { border-left-color: #3498db; }
+        .email-card.sales { border-left-color: #27ae60; }
+        .email-card.billing { border-left-color: #f39c12; }
+        .email-card.product { border-left-color: #9b59b6; }
+        .email-card.general { border-left-color: #95a5a6; }
+
+        .email-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
             margin-bottom: 10px;
         }
 
-        .link-item a {
-            color: #58a6ff;
-            text-decoration: none;
-            flex: 1;
-            word-break: break-all;
+        .email-time {
+            font-size: 12px;
+            color: #7f8c8d;
         }
 
-        .link-item a:hover {
-            text-decoration: underline;
+        .email-from {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
         }
 
-        @media (max-width: 768px) {
-            .action-bar {
-                flex-direction: column;
-            }
+        .email-subject {
+            font-size: 15px;
+            color: #34495e;
+            margin-bottom: 12px;
+        }
 
-            .btn {
-                width: 100%;
-                justify-content: center;
-            }
+        .email-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
 
-            .summary-grid {
+        .category-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .category-badge.support { background: #e3f2fd; color: #1976d2; }
+        .category-badge.sales { background: #e8f5e9; color: #388e3c; }
+        .category-badge.billing { background: #fff3e0; color: #f57c00; }
+        .category-badge.product { background: #f3e5f5; color: #7b1fa2; }
+        .category-badge.general { background: #eceff1; color: #546e7a; }
+
+        .email-meta {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+
+        .status-check {
+            color: #27ae60;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            padding: 25px 30px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            font-size: 20px;
+            color: #2c3e50;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #7f8c8d;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: #2c3e50;
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .email-section {
+            margin-bottom: 30px;
+        }
+
+        .email-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .section-content {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            line-height: 1.8;
+            color: #34495e;
+            white-space: pre-wrap;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c00;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .container {
                 grid-template-columns: 1fr;
+            }
+
+            .stats-panel {
+                position: static;
+            }
+
+            .header {
+                padding: 15px 20px;
+            }
+
+            .container {
+                padding: 20px;
             }
         }
     </style>
 </head>
 <body>
+    <!-- Demo Mode Banner -->
+    <div class="demo-banner" id="demoBanner">
+        ⚠️ <strong>Demo Mode</strong> - Configure SCRIPT_URL in the code to connect to your Google Apps Script backend
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <h1>📧 Email Auto-Response System</h1>
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span>Active</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <span class="last-update" id="lastUpdate">Last updated: Never</span>
+            <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+                🔄 Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
     <div class="container">
-        <div class="header">
-            <h1>🔧 Apps Script Connection Diagnostics</h1>
-            <p>Comprehensive testing tool to identify connection issues</p>
-        </div>
+        <!-- Stats Panel -->
+        <div class="stats-panel">
+            <h2>Quick Statistics</h2>
 
-        <div class="deployment-info">
-            <h3>📍 Deployment URL Being Tested</h3>
-            <div class="url-display" id="deploymentUrl"></div>
-        </div>
+            <div class="stat-item">
+                <div class="stat-label">📊 Total Emails Today</div>
+                <div class="stat-value" id="totalEmails">--</div>
+            </div>
 
-        <div class="action-bar">
-            <button class="btn btn-primary" id="runAllTestsBtn">
-                <span id="runBtnIcon">▶️</span>
-                <span id="runBtnText">Run All Tests</span>
-            </button>
-            <button class="btn btn-secondary" id="copyResultsBtn">
-                📋 Copy Results
-            </button>
-            <button class="btn btn-secondary" id="clearLogsBtn">
-                🗑️ Clear Logs
-            </button>
-        </div>
+            <div class="stat-item">
+                <div class="stat-label">✅ Auto-Responded</div>
+                <div class="stat-value" id="autoResponded">--</div>
+            </div>
 
-        <div class="progress-bar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
+            <div class="stat-item">
+                <div class="stat-label">⚡ Avg Response Time</div>
+                <div class="stat-value" id="avgResponseTime" style="font-size: 24px;">--</div>
+            </div>
 
-        <div id="testsContainer"></div>
-
-        <div class="summary-section" id="summarySection">
-            <h3>📊 Test Summary</h3>
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <div class="summary-value" id="totalTests">0</div>
-                    <div class="summary-label">Total Tests</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-value" style="color: #3fb950;" id="passedTests">0</div>
-                    <div class="summary-label">Passed</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-value" style="color: #f85149;" id="failedTests">0</div>
-                    <div class="summary-label">Failed</div>
-                </div>
-                <div class="summary-card">
-                    <div class="summary-value" id="totalTime">0s</div>
-                    <div class="summary-label">Total Time</div>
-                </div>
+            <div class="stat-item">
+                <div class="stat-label">🎯 Success Rate</div>
+                <div class="stat-value" id="successRate">--</div>
             </div>
         </div>
 
-        <div class="suggestions-section" id="suggestionsSection" style="display: none;"></div>
+        <!-- Email Feed -->
+        <div class="email-feed">
+            <div class="feed-header">
+                <h2>Recent Auto-Responses</h2>
+                <span class="email-count" id="emailCount">Loading...</span>
+            </div>
 
-        <div class="alternative-links">
-            <h3>🔗 Direct Browser Testing</h3>
-            <div class="link-item">
-                <span>🌐</span>
-                <a href="https://script.google.com/macros/s/AKfycbz1YLGic1Q8ng6ofC62fP1O6J_x_JhWAmfQy2MLNv3MCo81n6D0RHN-eFLFgyVTGVLa/exec?action=healthCheck" target="_blank" rel="noopener">
-                    Test Health Check in Browser
-                </a>
-            </div>
-            <div class="link-item">
-                <span>📊</span>
-                <a href="https://script.google.com/macros/s/AKfycbz1YLGic1Q8ng6ofC62fP1O6J_x_JhWAmfQy2MLNv3MCo81n6D0RHN-eFLFgyVTGVLa/exec?action=getStats" target="_blank" rel="noopener">
-                    Test Get Stats in Browser
-                </a>
-            </div>
-            <div class="link-item">
-                <span>📧</span>
-                <a href="https://script.google.com/macros/s/AKfycbz1YLGic1Q8ng6ofC62fP1O6J_x_JhWAmfQy2MLNv3MCo81n6D0RHN-eFLFgyVTGVLa/exec?action=getEmails" target="_blank" rel="noopener">
-                    Test Get Emails in Browser
-                </a>
+            <div id="emailList" class="email-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading email history...</p>
+                </div>
             </div>
         </div>
+    </div>
 
-        <div class="log-container">
-            <h3>📝 Console Log</h3>
-            <div id="logContainer"></div>
+    <!-- Email Detail Modal -->
+    <div class="modal" id="emailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Email Details</h3>
+                <button class="close-btn" onclick="closeModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="email-section">
+                    <div class="section-title">Original Customer Email</div>
+                    <div class="section-content" id="modalCustomerMessage"></div>
+                </div>
+                <div class="email-section">
+                    <div class="section-title">Automated Response Sent</div>
+                    <div class="section-content" id="modalAutoResponse"></div>
+                </div>
+                <div class="email-section">
+                    <div class="section-title">Details</div>
+                    <div class="section-content" id="modalDetails"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Configuration
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz1YLGic1Q8ng6ofC62fP1O6J_x_JhWAmfQy2MLNv3MCo81n6D0RHN-eFLFgyVTGVLa/exec';
-        
-        // State
-        const state = {
-            logs: [],
-            testResults: [],
-            startTime: null,
-            suggestions: []
+        /**
+         * ============================================================
+         * CONFIGURATION - REPLACE WITH YOUR GOOGLE APPS SCRIPT URL
+         * ============================================================
+         * 
+         * SETUP INSTRUCTIONS:
+         * 1. Deploy your email_automation_backend.gs as a Web App
+         * 2. Copy the Web App URL (looks like: https://script.google.com/macros/s/.../exec)
+         * 3. Replace the SCRIPT_URL below with your actual URL
+         * 4. Save and reload this page
+         * 
+         * That's it! Your dashboard will now show real data from Gmail.
+         */
+
+        const SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
+        // Example: 'https://script.google.com/macros/s/AKfycby123abc.../exec'
+
+        // ============================================================
+        // Global Variables
+        // ============================================================
+
+        let allEmails = [];
+        let isUsingDemoData = false;
+
+        // ============================================================
+        // Demo Data (Fallback)
+        // ============================================================
+
+        const DEMO_DATA = {
+            stats: {
+                totalEmails: 47,
+                autoResponded: 42,
+                avgResponseTime: '< 2 minutes',
+                pendingReview: 3,
+                manualReview: 2
+            },
+            emails: [
+                {
+                    timestamp: new Date(Date.now() - 2 * 60000).toISOString(),
+                    from: 'john.smith@email.com',
+                    subject: 'Help with password reset',
+                    inquiryType: 'Support',
+                    status: 'Auto-Responded',
+                    responseTime: '45 seconds',
+                    customerMessage: 'Hi, I forgot my password and can\'t log into my account. Can you help me reset it?',
+                    autoResponse: 'Thank you for contacting our support team! To reset your password, please visit our password reset page and follow the instructions. You\'ll receive an email with a reset link within a few minutes.'
+                },
+                {
+                    timestamp: new Date(Date.now() - 8 * 60000).toISOString(),
+                    from: 'sarah.jones@company.com',
+                    subject: 'Enterprise pricing information',
+                    inquiryType: 'Sales',
+                    status: 'Auto-Responded',
+                    responseTime: '1 minute',
+                    customerMessage: 'Hello, I\'m interested in your enterprise pricing plan for my company. Can you provide details?',
+                    autoResponse: 'Thank you for your interest in our Enterprise plan! Our sales team will contact you within 24 hours with detailed pricing and features.'
+                },
+                {
+                    timestamp: new Date(Date.now() - 15 * 60000).toISOString(),
+                    from: 'mike.wilson@email.com',
+                    subject: 'Invoice question',
+                    inquiryType: 'Billing',
+                    status: 'Auto-Responded',
+                    responseTime: '2 minutes',
+                    customerMessage: 'I have a question about my recent invoice. Can you help?',
+                    autoResponse: 'Thank you for contacting us regarding your billing inquiry. Our finance team will review and respond within 12 hours.'
+                }
+            ]
         };
 
-        // Test definitions
-        const tests = [
-            {
-                id: 'test1',
-                name: 'Health Check (Standard GET)',
-                description: 'Simple GET request to health check endpoint',
-                endpoint: '?action=healthCheck',
-                implementation: 'standard',
-                method: 'GET'
-            },
-            {
-                id: 'test2',
-                name: 'Get Statistics',
-                description: 'Fetch statistics data from Apps Script',
-                endpoint: '?action=getStats',
-                implementation: 'standard',
-                method: 'GET'
-            },
-            {
-                id: 'test3',
-                name: 'Get Emails',
-                description: 'Fetch email list from Apps Script',
-                endpoint: '?action=getEmails',
-                implementation: 'standard',
-                method: 'GET'
-            },
-            {
-                id: 'test4',
-                name: 'No-CORS Mode Test',
-                description: 'Attempt with no-cors mode (limited response access)',
-                endpoint: '?action=healthCheck',
-                implementation: 'no-cors',
-                method: 'GET'
-            },
-            {
-                id: 'test5',
-                name: 'Minimal Fetch Test',
-                description: 'Minimal fetch with no options',
-                endpoint: '?action=healthCheck',
-                implementation: 'minimal',
-                method: 'GET'
-            },
-            {
-                id: 'test6',
-                name: 'Credentials Omit Test',
-                description: 'Test with credentials explicitly omitted',
-                endpoint: '?action=healthCheck',
-                implementation: 'credentials-omit',
-                method: 'GET'
-            },
-            {
-                id: 'test7',
-                name: 'XMLHttpRequest Test',
-                description: 'Alternative method using XMLHttpRequest',
-                endpoint: '?action=healthCheck',
-                implementation: 'xhr',
-                method: 'GET'
-            }
-        ];
+        // ============================================================
+        // API Functions
+        // ============================================================
 
-        // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('deploymentUrl').textContent = APPS_SCRIPT_URL;
-            initializeTests();
-            setupEventListeners();
+        async function fetchStatistics() {
+            try {
+                if (!isScriptConfigured()) {
+                    return DEMO_DATA.stats;
+                }
+
+                const response = await fetch(`${SCRIPT_URL}?action=getStats`);
+                const data = await response.json();
+
+                if (data.success) {
+                    isUsingDemoData = false;
+                    return data.stats;
+                } else {
+                    console.error('API returned error:', data.error);
+                    return DEMO_DATA.stats;
+                }
+            } catch (error) {
+                console.error('Error fetching statistics:', error);
+                return DEMO_DATA.stats;
+            }
+        }
+
+        async function fetchEmails() {
+            try {
+                if (!isScriptConfigured()) {
+                    return DEMO_DATA.emails;
+                }
+
+                const response = await fetch(`${SCRIPT_URL}?action=getEmails`);
+                const data = await response.json();
+
+                if (data.success) {
+                    isUsingDemoData = false;
+                    return data.emails;
+                } else {
+                    console.error('API returned error:', data.error);
+                    return DEMO_DATA.emails;
+                }
+            } catch (error) {
+                console.error('Error fetching emails:', error);
+                return DEMO_DATA.emails;
+            }
+        }
+
+        function isScriptConfigured() {
+            return SCRIPT_URL && !SCRIPT_URL.includes('YOUR_GOOGLE_APPS_SCRIPT');
+        }
+
+        // ============================================================
+        // Display Functions
+        // ============================================================
+
+        function displayStatistics(stats) {
+            document.getElementById('totalEmails').textContent = stats.totalEmails || 0;
+            document.getElementById('autoResponded').textContent = stats.autoResponded || 0;
+            document.getElementById('avgResponseTime').textContent = stats.avgResponseTime || 'N/A';
+
+            const successRate = stats.totalEmails > 0 
+                ? Math.round((stats.autoResponded / stats.totalEmails) * 100) 
+                : 0;
+            document.getElementById('successRate').textContent = successRate + '%';
+        }
+
+        function displayEmails(emails) {
+            allEmails = emails;
+            const emailList = document.getElementById('emailList');
+            const emailCount = document.getElementById('emailCount');
+
+            if (!emails || emails.length === 0) {
+                emailList.innerHTML = '<div class="no-data">No emails processed yet</div>';
+                emailCount.textContent = '0 emails';
+                return;
+            }
+
+            emailCount.textContent = `${emails.length} email${emails.length !== 1 ? 's' : ''}`;
+
+            emailList.innerHTML = emails.map((email, index) => {
+                const categoryClass = (email.inquiryType || 'general').toLowerCase();
+                const relativeTime = getRelativeTime(email.timestamp);
+
+                return `
+                    <div class="email-card ${categoryClass}" onclick="showEmailDetail(${index})">
+                        <div class="email-header">
+                            <div>
+                                <div class="email-time">${relativeTime}</div>
+                                <div class="email-from">${email.from}</div>
+                            </div>
+                        </div>
+                        <div class="email-subject">${email.subject}</div>
+                        <div class="email-footer">
+                            <span class="category-badge ${categoryClass}">${email.inquiryType || 'General'}</span>
+                            <div class="email-meta">
+                                <span class="status-check">✓ Auto-Responded</span>
+                                <span>⚡ ${email.responseTime}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getRelativeTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+            if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+            return date.toLocaleDateString();
+        }
+
+        // ============================================================
+        // Modal Functions
+        // ============================================================
+
+        function showEmailDetail(index) {
+            const email = allEmails[index];
+            const modal = document.getElementById('emailModal');
+
+            document.getElementById('modalTitle').textContent = `Email from ${email.from}`;
+            document.getElementById('modalCustomerMessage').textContent = email.customerMessage || 'No message content available';
+            document.getElementById('modalAutoResponse').textContent = email.autoResponse || 'No response content available';
+            document.getElementById('modalDetails').innerHTML = `
+                <strong>Subject:</strong> ${email.subject}<br>
+                <strong>Category:</strong> ${email.inquiryType}<br>
+                <strong>Status:</strong> ${email.status}<br>
+                <strong>Response Time:</strong> ${email.responseTime}<br>
+                <strong>Timestamp:</strong> ${new Date(email.timestamp).toLocaleString()}
+            `;
+
+            modal.classList.add('show');
+        }
+
+        function closeModal() {
+            document.getElementById('emailModal').classList.remove('show');
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('emailModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
         });
 
-        // Setup event listeners
-        function setupEventListeners() {
-            document.getElementById('runAllTestsBtn').addEventListener('click', runAllTests);
-            document.getElementById('copyResultsBtn').addEventListener('click', copyResults);
-            document.getElementById('clearLogsBtn').addEventListener('click', clearLogs);
-        }
+        // ============================================================
+        // Data Loading
+        // ============================================================
 
-        // Initialize test UI
-        function initializeTests() {
-            const container = document.getElementById('testsContainer');
-            container.innerHTML = tests.map(test => `
-                <div class="test-section" id="${test.id}">
-                    <div class="test-header" onclick="toggleTest('${test.id}')">
-                        <div class="test-title">
-                            <span class="test-status pending" id="${test.id}-status">⏸️</span>
-                            <span>${test.name}</span>
-                        </div>
-                        <span>▼</span>
-                    </div>
-                    <div class="test-body" id="${test.id}-body">
-                        <div class="test-info">
-                            <div class="info-label">Description</div>
-                            <div class="info-value">${test.description}</div>
-                        </div>
-                        <div class="test-info">
-                            <div class="info-label">URL</div>
-                            <div class="info-value">${APPS_SCRIPT_URL}${test.endpoint}</div>
-                        </div>
-                        <div class="test-info">
-                            <div class="info-label">Method</div>
-                            <div class="info-value">${test.method}</div>
-                        </div>
-                        <div class="test-info">
-                            <div class="info-label">Implementation</div>
-                            <div class="info-value">${test.implementation}</div>
-                        </div>
-                        <div id="${test.id}-results"></div>
-                    </div>
-                </div>
-            `).join('');
-        }
+        async function loadData() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '🔄 Refreshing...';
 
-        // Toggle test visibility
-        function toggleTest(testId) {
-            const body = document.getElementById(`${testId}-body`);
-            body.classList.toggle('expanded');
-        }
-
-        // Run all tests
-        async function runAllTests() {
-            const btn = document.getElementById('runAllTestsBtn');
-            btn.disabled = true;
-            
-            // Reset state
-            state.logs = [];
-            state.testResults = [];
-            state.suggestions = [];
-            state.startTime = Date.now();
-            
-            clearLogs();
-            document.getElementById('summarySection').classList.remove('visible');
-            document.getElementById('suggestionsSection').style.display = 'none';
-            document.getElementById('progressFill').style.width = '0%';
-            
-            log('info', 'Starting diagnostic tests...', { timestamp: new Date().toISOString() });
-            
-            // Run tests sequentially
-            for (let i = 0; i < tests.length; i++) {
-                const test = tests[i];
-                log('info', `Running: ${test.name}`);
-                await runTest(test);
-                
-                // Update progress
-                const progress = ((i + 1) / tests.length) * 100;
-                document.getElementById('progressFill').style.width = `${progress}%`;
-                
-                // Small delay between tests
-                await new Promise(resolve => setTimeout(resolve, 500));
+            // Check if script is configured
+            if (!isScriptConfigured()) {
+                isUsingDemoData = true;
+                document.getElementById('demoBanner').classList.add('show');
+            } else {
+                document.getElementById('demoBanner').classList.remove('show');
             }
-            
-            // Generate summary
-            generateSummary();
-            generateSuggestions();
-            
-            log('success', 'All tests completed!');
-            btn.disabled = false;
+
+            // Fetch data
+            const [stats, emails] = await Promise.all([
+                fetchStatistics(),
+                fetchEmails()
+            ]);
+
+            // Display data
+            displayStatistics(stats);
+            displayEmails(emails);
+
+            // Update last refresh time
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = 
+                `Last updated: ${now.toLocaleTimeString()}`;
+
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = '🔄 Refresh';
         }
 
-        // Run individual test
-        async function runTest(test) {
-            const statusEl = document.getElementById(`${test.id}-status`);
-            const resultsEl = document.getElementById(`${test.id}-results`);
-            
-            // Set running state
-            statusEl.textContent = '⏳';
-            statusEl.className = 'test-status running';
-            
-            const startTime = Date.now();
-            let result = {
-                testId: test.id,
-                testName: test.name,
-                success: false,
-                status: null,
-                headers: {},
-                body: null,
-                error: null,
-                timing: 0
-            };
-            
-            try {
-                const url = APPS_SCRIPT_URL + test.endpoint;
-                
-                // Execute based on implementation type
-                let response;
-                switch (test.implementation) {
-                    case 'standard':
-                        response = await fetch(url, {
-                            method: 'GET',
-                            redirect: 'follow',
-                            mode: 'cors'
-                        });
-                        break;
-                    
-                    case 'no-cors':
-                        response = await fetch(url, {
-                            method: 'GET',
-                            mode: 'no-cors'
-                        });
-                        break;
-                    
-                    case 'minimal':
-                        response = await fetch(url);
-                        break;
-                    
-                    case 'credentials-omit':
-                        response = await fetch(url, {
-                            method: 'GET',
-                            credentials: 'omit',
-                            redirect: 'follow'
-                        });
-                        break;
-                    
-                    case 'xhr':
-                        response = await xhrRequest(url);
-                        break;
-                }
-                
-                result.timing = Date.now() - startTime;
-                result.status = response.status;
-                
-                // Extract headers (if available)
-                if (response.headers) {
-                    response.headers.forEach((value, key) => {
-                        result.headers[key] = value;
-                    });
-                }
-                
-                // Try to get response body
-                if (test.implementation === 'no-cors') {
-                    result.body = 'Response body not accessible in no-cors mode';
-                    result.success = response.type === 'opaque';
-                } else if (test.implementation === 'xhr') {
-                    result.body = response.responseText;
-                    result.success = response.status >= 200 && response.status < 300;
-                } else {
-                    const contentType = response.headers.get('content-type');
-                    if (contentType && contentType.includes('application/json')) {
-                        result.body = await response.json();
-                    } else {
-                        result.body = await response.text();
-                    }
-                    result.success = response.ok;
-                }
-                
-                // Update UI
-                statusEl.textContent = result.success ? '✅' : '❌';
-                statusEl.className = `test-status ${result.success ? 'success' : 'error'}`;
-                
-                resultsEl.innerHTML = `
-                    <div class="test-info">
-                        <div class="info-label">Status</div>
-                        <div class="info-value">
-                            <span class="status-badge ${result.success ? 'success' : 'error'}">
-                                ${result.status || 'N/A'} ${result.success ? 'Success' : 'Failed'}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="test-info">
-                        <div class="info-label">Response Time</div>
-                        <div class="info-value">${result.timing}ms</div>
-                    </div>
-                    ${Object.keys(result.headers).length > 0 ? `
-                        <div class="test-info">
-                            <div class="info-label">Response Headers</div>
-                            <div class="code-block">${JSON.stringify(result.headers, null, 2)}</div>
-                        </div>
-                    ` : ''}
-                    <div class="test-info">
-                        <div class="info-label">Response Body</div>
-                        <div class="code-block">${typeof result.body === 'object' ? JSON.stringify(result.body, null, 2) : result.body}</div>
-                    </div>
-                `;
-                
-                // Expand if failed
-                if (!result.success) {
-                    document.getElementById(`${test.id}-body`).classList.add('expanded');
-                }
-                
-                log(result.success ? 'success' : 'error', 
-                    `${test.name}: ${result.success ? 'PASSED' : 'FAILED'}`,
-                    { status: result.status, timing: `${result.timing}ms` }
-                );
-                
-            } catch (error) {
-                result.timing = Date.now() - startTime;
-                result.error = {
-                    message: error.message,
-                    type: error.name,
-                    stack: error.stack
-                };
-                
-                statusEl.textContent = '❌';
-                statusEl.className = 'test-status error';
-                
-                resultsEl.innerHTML = `
-                    <div class="test-info">
-                        <div class="info-label">Error Type</div>
-                        <div class="info-value">
-                            <span class="status-badge error">${error.name}</span>
-                        </div>
-                    </div>
-                    <div class="test-info">
-                        <div class="info-label">Error Message</div>
-                        <div class="info-value">${error.message}</div>
-                    </div>
-                    <div class="test-info">
-                        <div class="info-label">Stack Trace</div>
-                        <div class="code-block">${error.stack || 'Not available'}</div>
-                    </div>
-                `;
-                
-                document.getElementById(`${test.id}-body`).classList.add('expanded');
-                
-                log('error', `${test.name}: ERROR - ${error.message}`, {
-                    type: error.name,
-                    message: error.message
-                });
+        function refreshData() {
+            loadData();
+        }
+
+        // ============================================================
+        // Auto-refresh
+        // ============================================================
+
+        // Auto-refresh every 60 seconds
+        setInterval(() => {
+            if (!document.hidden) { // Only refresh if page is visible
+                loadData();
             }
-            
-            state.testResults.push(result);
-        }
+        }, 60000);
 
-        // XMLHttpRequest implementation
-        function xhrRequest(url) {
-            return new Promise((resolve, reject) => {
-                const xhr = new XMLHttpRequest();
-                xhr.open('GET', url, true);
-                xhr.timeout = 10000;
-                
-                xhr.onload = function() {
-                    resolve({
-                        status: xhr.status,
-                        responseText: xhr.responseText,
-                        headers: {}
-                    });
-                };
-                
-                xhr.onerror = function() {
-                    reject(new Error('XMLHttpRequest failed'));
-                };
-                
-                xhr.ontimeout = function() {
-                    reject(new Error('XMLHttpRequest timeout'));
-                };
-                
-                xhr.send();
-            });
-        }
+        // ============================================================
+        // Initialize
+        // ============================================================
 
-        // Generate summary
-        function generateSummary() {
-            const totalTests = state.testResults.length;
-            const passedTests = state.testResults.filter(r => r.success).length;
-            const failedTests = totalTests - passedTests;
-            const totalTime = ((Date.now() - state.startTime) / 1000).toFixed(2);
-            
-            document.getElementById('totalTests').textContent = totalTests;
-            document.getElementById('passedTests').textContent = passedTests;
-            document.getElementById('failedTests').textContent = failedTests;
-            document.getElementById('totalTime').textContent = `${totalTime}s`;
-            
-            document.getElementById('summarySection').classList.add('visible');
-        }
-
-        // Generate suggestions
-        function generateSuggestions() {
-            const suggestions = [];
-            const errors = state.testResults.filter(r => !r.success);
-            
-            // Check for CORS errors
-            const corsErrors = errors.filter(e => 
-                e.error && (e.error.message.includes('CORS') || e.error.type === 'TypeError')
-            );
-            if (corsErrors.length > 0) {
-                suggestions.push({
-                    title: 'CORS Policy Error Detected',
-                    description: 'The Apps Script is blocking cross-origin requests. You need to redeploy the script with correct CORS headers. Make sure "Who has access" is set to "Anyone" and the script is deployed as a web app.'
-                });
-            }
-            
-            // Check for 404 errors
-            const notFoundErrors = errors.filter(e => e.status === 404);
-            if (notFoundErrors.length > 0) {
-                suggestions.push({
-                    title: '404 Not Found',
-                    description: 'The deployment URL appears to be incorrect or the script is not deployed. Verify the deployment ID and make sure the script is deployed as a web app.'
-                });
-            }
-            
-            // Check for 403 errors
-            const forbiddenErrors = errors.filter(e => e.status === 403);
-            if (forbiddenErrors.length > 0) {
-                suggestions.push({
-                    title: '403 Forbidden - Permission Denied',
-                    description: 'The Apps Script "Who has access" setting must be set to "Anyone" (or "Anyone with the link"). Go to Deploy → Manage deployments → Edit → Who has access.'
-                });
-            }
-            
-            // Check if all standard tests failed
-            const standardTests = state.testResults.filter(r => r.testName.includes('Standard') || r.testName.includes('Statistics') || r.testName.includes('Emails'));
-            if (standardTests.every(t => !t.success)) {
-                suggestions.push({
-                    title: 'All Standard Tests Failed',
-                    description: 'None of the standard fetch requests succeeded. This typically indicates a deployment issue. Try: 1) Redeploy the script as a new version, 2) Check "Execute as: Me", 3) Set "Who has access: Anyone".'
-                });
-            }
-            
-            // Check for network errors
-            const networkErrors = errors.filter(e => 
-                e.error && (e.error.message.includes('network') || e.error.message.includes('Failed to fetch'))
-            );
-            if (networkErrors.length > 0) {
-                suggestions.push({
-                    title: 'Network Error',
-                    description: 'Unable to reach the Apps Script URL. Check your internet connection and verify the deployment URL is correct.'
-                });
-            }
-            
-            // Display suggestions
-            if (suggestions.length > 0) {
-                const suggestionsSection = document.getElementById('suggestionsSection');
-                suggestionsSection.style.display = 'block';
-                suggestionsSection.innerHTML = `
-                    <h3>💡 Suggested Fixes</h3>
-                    ${suggestions.map(s => `
-                        <div class="suggestion-item">
-                            <h4>${s.title}</h4>
-                            <p>${s.description}</p>
-                        </div>
-                    `).join('')}
-                `;
-            }
-        }
-
-        // Logging function
-        function log(type, message, data = null) {
-            const entry = {
-                timestamp: new Date().toISOString(),
-                type: type,
-                message: message,
-                data: data
-            };
-            
-            state.logs.push(entry);
-            displayLog(entry);
-        }
-
-        // Display log entry
-        function displayLog(entry) {
-            const logContainer = document.getElementById('logContainer');
-            const logEntry = document.createElement('div');
-            logEntry.className = `log-entry log-${entry.type}`;
-            
-            const time = new Date(entry.timestamp).toLocaleTimeString();
-            logEntry.innerHTML = `
-                <span class="log-time">${time}</span>
-                <span class="log-type">[${entry.type.toUpperCase()}]</span>
-                <span class="log-message">${entry.message}</span>
-                ${entry.data ? `<pre class="log-data">${JSON.stringify(entry.data, null, 2)}</pre>` : ''}
-            `;
-            
-            logContainer.appendChild(logEntry);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
-
-        // Clear logs
-        function clearLogs() {
-            state.logs = [];
-            document.getElementById('logContainer').innerHTML = '';
-        }
-
-        // Copy results to clipboard
-        function copyResults() {
-            const results = {
-                timestamp: new Date().toISOString(),
-                deploymentUrl: APPS_SCRIPT_URL,
-                summary: {
-                    totalTests: state.testResults.length,
-                    passed: state.testResults.filter(r => r.success).length,
-                    failed: state.testResults.filter(r => !r.success).length
-                },
-                tests: state.testResults,
-                logs: state.logs
-            };
-            
-            const text = JSON.stringify(results, null, 2);
-            
-            navigator.clipboard.writeText(text).then(() => {
-                alert('✅ Results copied to clipboard!');
-            }).catch(err => {
-                alert('❌ Failed to copy: ' + err.message);
-            });
-        }
+        // Load data when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
+        });
     </script>
 </body>
 </html>
