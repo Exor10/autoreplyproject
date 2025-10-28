@@ -146,7 +146,22 @@ function updateStatistics(stats) {
     document.getElementById('totalEmails').textContent = stats.totalEmails || 0;
     document.getElementById('autoResponded').textContent = stats.autoResponded || 0;
     document.getElementById('avgResponseTime').textContent = stats.avgResponseTime || '--';
-    document.getElementById('successRate').textContent = stats.successRate ? `${stats.successRate}%` : '--';
+    
+    // Calculate success rate with fallback logic
+    let successRate = '--';
+    if (stats.successRate !== undefined && stats.successRate !== null) {
+        // Backend provided success rate directly
+        successRate = `${stats.successRate}%`;
+    } else if (stats.totalEmails && stats.totalEmails > 0) {
+        // Calculate success rate from autoResponded/totalEmails
+        const calculated = Math.round((stats.autoResponded / stats.totalEmails) * 100);
+        successRate = `${calculated}%`;
+    } else if (stats.totalEmails === 0) {
+        // Edge case: no emails yet
+        successRate = '0%';
+    }
+    
+    document.getElementById('successRate').textContent = successRate;
 }
 
 // Render email feed
@@ -314,14 +329,14 @@ async function handleFollowUpSubmit(e) {
         console.log('Follow-up response data:', data);
 
         if (data.success) {
-            alert('✓ Follow-up email sent successfully!');
+            showToast('Follow-up email sent successfully!', 'success');
             closeFollowUpModal();
         } else {
             throw new Error(data.message || 'Failed to send email');
         }
     } catch (error) {
         console.error('Error sending follow-up email:', error);
-        alert('Failed to send follow-up email. Please try again.');
+        showToast('Failed to send follow-up email. Please try again.', 'error');
     } finally {
         // Reset button state
         submitBtn.disabled = false;
@@ -414,6 +429,42 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Toast notification system
+function showToast(message, type = 'success') {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.getElementById('toastContainer');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        toastContainer.className = 'toast-container';
+        document.body.appendChild(toastContainer);
+    }
+
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    const icon = type === 'success' ? '✓' : '✕';
+    toast.innerHTML = `
+        <span class="toast-icon">${icon}</span>
+        <span class="toast-message">${escapeHtml(message)}</span>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+
+    toastContainer.appendChild(toast);
+
+    // Trigger animation
+    setTimeout(() => toast.classList.add('toast-show'), 10);
+
+    // Auto-dismiss success toasts after 3 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            toast.classList.remove('toast-show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
 }
 
 // Cleanup on page unload
